@@ -1,0 +1,72 @@
+# echoloom 配置示例
+# 复制本文件为 config.yaml 后按需修改：cp config.example.yaml config.yaml
+# config.yaml 已在 .gitignore 中，不会被提交，可安全填写密钥。
+
+mount:
+  path: /Volumes/JNN          # 挂载点检测路径（macOS 下为 /Volumes/<卷名>）
+  record_dir: RECORD          # 录音所在子目录
+  poll_interval: 5            # 挂载检测轮询间隔（秒）
+  delete_after_copy: true     # 复制成功后删除源文件
+  eject_after_copy: true      # 源文件全部取走后弹出设备（diskutil eject）
+
+storage:
+  data_dir: data              # 本地数据根目录（相对项目根）
+  raw_dir: data/raw           # 复制出来的原始录音
+  split_dir: data/split       # 切分后的音频
+  text_dir: data/text         # 润色后的文本输出
+  summary_dir: data/summary   # 每日 summary 输出
+  state_file: data/state.json # 已处理文件状态（防重复处理），内部路径均为相对路径
+  marks_file: data/marks.json # 回顾界面上手动勾选的条目状态
+  # 转录+润色完成后删除原始音频与分片（只留文本），true 为省磁盘
+  delete_audio_after_process: true
+
+audio:
+  ffmpeg: ffmpeg              # ffmpeg 可执行文件
+  ffprobe: ffprobe            # ffprobe 可执行文件
+  # 切分段长上限（秒）。omni 服务端单次音频默认上限 600s，超了直接 400 拒收，
+  # 所以这里取 600 留一点余量。改用 whisper 时可以调回 3600。
+  segment_seconds: 600
+
+concurrency: 6                # 转录+润色的并发数
+
+web:
+  host: 127.0.0.1            # 回顾界面监听地址（仅本机可见，勿随意改成 0.0.0.0）
+  port: 34100                # 回顾界面监听端口
+  auto_start: true           # 转录/润色或 summary 有产出后，自动在后台拉起回顾界面
+  open_browser: true         # 拉起时都打开浏览器（--no-browser 可临时关）
+
+# 统一多模态大模型：写上这一段，就同时顶替下面的「转录」和「LLM」两套配置。
+# 删掉/注释这一段，则各自回退到 transcribe.whisper 与 llm 各自的配置。
+omni:
+  url: http://127.0.0.1:8000/v1/chat/completions   # OpenAI 兼容接口
+  api_key: sk-your-key
+  model: your-omni-model
+  # 转录时用的指令；润色/总结仍走各自 prompt
+  prompt: "请把这段录音逐字转写为简体中文文本，不要翻译、总结或添加说明。"
+  max_tokens: 8192
+  frequency_penalty: 0.5     # 抑制非语音片段的复读退化（实测 0.2→0.5 判废 3 降到 1）
+  timeout: 1800              # 大文件转录较慢，超时调大
+  retries: 3                 # 失败重试次数
+
+# 转录（仅在没有 omni 段时使用）
+transcribe:
+  enabled: true
+  whisper:
+    url: http://127.0.0.1:8000/v1/audio/transcriptions
+    api_key: sk-your-key
+    model: whisper-large-v3
+    language: zh
+    timeout: 1800
+    retries: 3
+
+# LLM（润色 + 每日 summary）
+# max_tokens 同时用于润色和 summary，必须够放下整天内容，
+# 否则会在半句处被截断（历史上 5 份 summary 都被 256 截断过）。
+llm:
+  enabled: true
+  max_tokens: 8192
+  url: http://127.0.0.1:8000/v1/chat/completions
+  api_key: sk-your-key
+  model: your-llm-model
+  timeout: 120
+  retries: 3

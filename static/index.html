@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<title>JNN 每日总结</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --panel: #fffefc;
+    --line: #e4e0d8;
+    --text: #23201c;
+    --muted: #8a8377;
+    --accent: #9a5b2e;
+    --accent-soft: #f0e2d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171614;
+      --panel: #201e1b;
+      --line: #35312b;
+      --text: #e8e3da;
+      --muted: #948c7f;
+      --accent: #d9a066;
+      --accent-soft: #3a2f24;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.75 -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  #side {
+    width: 300px;
+    flex: none;
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    overflow-y: auto;
+    padding: 20px 0 40px;
+  }
+  #brand { display: flex; align-items: center; gap: 8px; margin: 0 20px 4px; }
+  #brand img { width: 22px; height: 22px; flex: none; border-radius: 5px; }
+  #brand h1 { font-size: 15px; margin: 0; letter-spacing: .02em; }
+  #side .sub { margin: 0 20px 12px; color: var(--muted); font-size: 12px; }
+  #q {
+    display: block; width: calc(100% - 40px); margin: 0 20px 14px;
+    padding: 6px 9px; font: inherit; font-size: 13px;
+    color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px;
+  }
+  #q:focus { outline: none; border-color: var(--accent); }
+  .month {
+    position: sticky; top: 0; z-index: 1;
+    padding: 8px 20px 4px; font-size: 11.5px; letter-spacing: .06em;
+    color: var(--muted); background: var(--panel);
+  }
+  .day {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-left: 3px solid transparent;
+    background: none;
+    color: inherit;
+    font: inherit;
+    padding: 9px 18px 10px 17px;
+    cursor: pointer;
+  }
+  .day:hover { background: var(--bg); }
+  .day.on { border-left-color: var(--accent); background: var(--accent-soft); }
+  .day .d { font-variant-numeric: tabular-nums; }
+  .day .p {
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-top: 2px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .day .n { color: var(--accent); font-size: 11.5px; margin-left: 6px; }
+
+  main { flex: 1; overflow-y: auto; }
+  #bar {
+    position: sticky; top: 0; z-index: 1;
+    display: flex; align-items: baseline; gap: 14px;
+    padding: 18px 40px 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  #bar .date { font-size: 20px; font-weight: 600; }
+  #bar .meta { color: var(--muted); font-size: 12.5px; }
+  #bar .sp { flex: 1; }
+  #bar button {
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    border-radius: 6px; padding: 3px 10px; font: inherit; font-size: 12.5px; cursor: pointer;
+  }
+  #bar button:disabled { opacity: .35; cursor: default; }
+
+  article { max-width: 760px; padding: 8px 40px 120px; }
+  .doctitle { color: var(--muted); font-size: 13px; margin: 18px 0 0; }
+  article h2 {
+    font-size: 16.5px; margin: 30px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  article p { margin: 10px 0; }
+  article ul { margin: 8px 0; padding-left: 20px; }
+  article ul ul { margin: 4px 0; }
+  article li { margin: 5px 0; padding-left: 20px; position: relative; }
+  article li::marker { color: var(--accent); }
+  article li > .tick {
+    position: absolute; left: -19px; top: .45em;
+    width: 13px; height: 13px; padding: 0;
+    border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel); color: transparent;
+    font-size: 10px; line-height: 1; cursor: pointer;
+    opacity: .55; transition: opacity .12s;
+  }
+  article li:hover > .tick, article li > .tick:focus { opacity: 1; }
+  article li.done > .tick {
+    opacity: 1; border-color: var(--accent); background: var(--accent); color: #fff;
+  }
+  article li.done { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--accent); }
+  #legend { color: var(--muted); font-size: 12px; }
+  article blockquote {
+    margin: 14px 0; padding: 6px 14px;
+    border-left: 3px solid var(--accent-soft); color: var(--muted);
+  }
+  article code {
+    background: var(--accent-soft); border-radius: 4px; padding: 1px 5px; font-size: 13px;
+  }
+  #empty { color: var(--muted); padding: 60px 40px; }
+  @media (hover: none) { article li > .tick { opacity: 1; } }
+</style>
+</head>
+<body>
+<nav id="side">
+  <div id="brand"><img src="/static/logo.svg" alt=""><h1>JNN 每日总结</h1></div>
+  <p class="sub" id="count"></p>
+  <input id="q" type="search" placeholder="搜索日期或内容" autocomplete="off">
+  <div id="days"></div>
+</nav>
+<main>
+  <div id="bar" hidden>
+    <span class="date" id="title"></span>
+    <span class="meta" id="meta"></span>
+    <span class="sp"></span>
+    <span id="legend">待办事项里点方格标为完成，再点取消</span>
+    <button id="prev">← 前一天</button>
+    <button id="next">后一天 →</button>
+  </div>
+  <div id="empty">读取中…</div>
+  <article id="body" hidden></article>
+</main>
+<script>
+const WEEK = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const $ = (id) => document.getElementById(id);
+const debounce = (fn, ms) => {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+};
+
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const inline = (s) => esc(s)
+  .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  .replace(/`(.+?)`/g, "<code>$1</code>");
+
+// 勾选状态以条目正文为键（服务端只当不透明字符串存），所以先剥掉 markdown 记号
+const itemKey = (s) => s.replace(/\*\*/g, "").replace(/\s+/g, " ").trim().slice(0, 200);
+
+// summary 是 LLM 裸 Markdown，格式不统一：标题有 ###/####/纯加粗三种，
+// 列表有 -/* 与两级缩进（20260930 用 4 空格、20261001 用 2 空格），
+// 还夹着 --- 和 > 备注，这里按行归一化。
+function render(src) {
+  const out = [];
+  let depth = 0;
+  let openLi = false;
+  let markable = false;   // 只有「待办事项」一节可以勾
+  const isTodo = (text) => /待办/.test(text) || /^3[.、]/.test(text);
+  const needsClose = [];   // needsClose[L]：退出第 L 层时要补的那个 </li>
+  const lists = (want) => {
+    if (want >= depth) {
+      // 变深时把当前 <li> 让出来当父项，子列表嵌进它内部
+      while (depth < want) {
+        if (openLi) { needsClose[depth] = true; openLi = false; }
+        out.push("<ul>");
+        depth++;
+      }
+      if (openLi) { out.push("</li>"); openLi = false; }
+      return;
+    }
+    if (openLi) { out.push("</li>"); openLi = false; }
+    while (depth > want) {
+      depth--;
+      out.push("</ul>");
+      if (needsClose[depth]) { out.push("</li>"); delete needsClose[depth]; }
+    }
+  };
+  const heading = (text) => {
+    text = text.replace(/\*\*/g, "").trim();
+    markable = isTodo(text);
+    return /^\d+[.、]/.test(text) ? `<h2>${inline(text)}</h2>` : `<p class="doctitle">${inline(text)}</p>`;
+  };
+
+  for (const raw of src.split(/\r?\n/)) {
+    const line = raw.replace(/\s+$/, "");
+    const t = line.trim();
+    let m;
+    if (!t || /^[*\-\s]+$/.test(t)) continue;
+    if (/^(---|\*\*\*|___)$/.test(t)) { lists(0); continue; }
+    if ((m = line.match(/^(\s*)[-*]\s+(.+)$/))) {
+      // 待办小节里的 [ ] / [x] 是 markdown 任务列表，界面上已有真方格，去掉免得重复
+      const text = m[2].trim().replace(/^\[[ xX]\]\s*/, "");
+      lists(m[1].length ? 2 : 1);
+      out.push(markable ? `<li data-key="${esc(itemKey(text))}">${inline(text)}` : `<li>${inline(text)}`);
+      openLi = true;
+      continue;
+    }
+    lists(0);
+    if ((m = t.match(/^#{1,6}\s*(.+)$/))) { out.push(heading(m[1])); continue; }
+    if ((m = t.match(/^\*\*(.+?)\*\*$/))) { out.push(heading(m[1])); continue; }
+    if ((m = t.match(/^>\s?(.*)$/))) { out.push(`<blockquote>${inline(m[1])}</blockquote>`); continue; }
+    out.push(`<p>${inline(t)}</p>`);
+  }
+  lists(0);
+  return out.join("");
+}
+
+const state = { days: [], view: [], marks: {}, visible: {}, current: null, q: "", chars: 0 };
+const GLYPH = "✓";
+
+function label(date) {
+  const d = new Date(+date.slice(0, 4), +date.slice(4, 6) - 1, +date.slice(6, 8));
+  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 · ${WEEK[d.getDay()]}`;
+}
+
+// 侧栏按月分组（sticky 月份头）。搜索走服务端全文，命中日期由 state.view 给出。
+function renderList() {
+  let html = "";
+  let month = "";
+  for (const d of state.view) {
+    const ym = d.date.slice(0, 6);
+    if (ym !== month) {
+      month = ym;
+      html += `<div class="month">${ym.slice(0, 4)} 年 ${+ym.slice(4)} 月</div>`;
+    }
+    const marked = state.visible[d.date] || 0;
+    html += `<button class="day" data-date="${d.date}"><span class="d">${label(d.date)}` +
+            (marked ? `<span class="n">✓${marked}</span>` : "") +
+            `</span><span class="p">${esc(d.preview)}</span></button>`;
+  }
+  $("days").innerHTML = html;
+  $("count").textContent = state.days.length
+    ? (state.q.trim()
+        ? `筛出 ${state.view.length} / ${state.days.length} 天`
+        : `共 ${state.days.length} 天`)
+    : "";
+  document.querySelectorAll(".day").forEach((el) => {
+    el.classList.toggle("on", el.dataset.date === state.current);
+    el.addEventListener("click", () => show(el.dataset.date));
+  });
+}
+
+async function refreshView() {
+  const q = state.q.trim();
+  if (!q) {
+    state.view = state.days;
+  } else {
+    const hits = await fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json());
+    const hit = new Set(hits.map((h) => h.date));
+    state.view = state.days.filter((d) => hit.has(d.date));
+  }
+  renderList();
+  updateNav();
+}
+
+function applyMarks() {
+  const day = state.marks[state.current] || {};
+  let shown = 0;
+  document.querySelectorAll("#body li[data-key]").forEach((li) => {
+    const done = day[li.dataset.key] === "done";
+    if (done) shown++;
+    li.classList.toggle("done", done);
+    let tick = li.querySelector(":scope > .tick");
+    if (!tick) {
+      tick = document.createElement("button");
+      tick.className = "tick";
+      tick.type = "button";
+      li.prepend(tick);
+    }
+    tick.textContent = done ? GLYPH : "";
+    tick.title = done ? "已完成，点击取消" : "点击标为完成";
+  });
+  // 只统计看得见的方格：别的章节若有历史标记，不该计入角标
+  state.visible[state.current] = shown;
+  $("meta").textContent = `${state.chars} 字 · 待办已标记 ${shown} 条`;
+}
+
+async function toggleMark(li) {
+  const done = !li.classList.contains("done");
+  const res = await fetch("/api/mark", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date: state.current, key: li.dataset.key, done }),
+  });
+  if (!res.ok) {
+    alert("保存标记失败：" + (await res.text()));
+    return;
+  }
+  const { marks } = await res.json();
+  if (marks && Object.keys(marks).length) state.marks[state.current] = marks;
+  else delete state.marks[state.current];
+  applyMarks();
+  renderList();
+}
+
+async function show(date) {
+  const item = state.days.find((d) => d.date === date);
+  if (!item) return;
+  state.current = date;
+  renderList();
+
+  const res = await fetch(`/api/summary/${date}`);
+  if (!res.ok) {
+    $("empty").hidden = false;
+    $("empty").textContent = `读取 ${date} 失败`;
+    $("body").hidden = true;
+    return;
+  }
+  const { content } = await res.json();
+  state.chars = content.length;
+  $("title").textContent = label(date);
+  $("body").innerHTML = render(content);
+  applyMarks();
+  $("empty").hidden = true;
+  $("body").hidden = false;
+  $("bar").hidden = false;
+  updateNav();
+  document.querySelector("main").scrollTop = 0;
+}
+
+// 侧栏最新在上：往回一天是往后翻，往后一天是往前翻
+function updateNav() {
+  const i = state.view.findIndex((d) => d.date === state.current);
+  $("prev").disabled = i < 0 || i >= state.view.length - 1;
+  $("next").disabled = i <= 0;
+}
+
+const step = (delta) => {
+  const i = state.view.findIndex((d) => d.date === state.current);
+  const next = state.view[i + delta];
+  if (next) show(next.date);
+};
+
+async function init() {
+  const [days, marks] = await Promise.all([
+    fetch("/api/summaries").then((r) => r.json()),
+    fetch("/api/marks").then((r) => r.json()).catch(() => ({})),
+  ]);
+  state.days = days;
+  state.marks = marks || {};
+  // 还没打开过的日子先按存下来的条数算角标，打开后由 applyMarks 换成实际可见的方格数
+  for (const [date, day] of Object.entries(state.marks)) {
+    state.visible[date] = Object.keys(day || {}).length;
+  }
+  if (!state.days.length) {
+    renderList();
+    $("empty").textContent = "data/summary 下还没有 summary";
+    return;
+  }
+  $("body").addEventListener("click", (e) => {
+    const tick = e.target.closest(".tick");
+    if (tick) toggleMark(tick.parentElement);
+  });
+  $("q").addEventListener("input", debounce((e) => {
+    state.q = e.target.value;
+    refreshView();
+  }, 180));
+  $("prev").addEventListener("click", () => step(1));
+  $("next").addEventListener("click", () => step(-1));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") step(1);
+    if (e.key === "ArrowRight") step(-1);
+  });
+  await refreshView();
+  if (state.view.length) show(state.view[0].date);
+}
+
+init();
+</script>
+</body>
+</html>

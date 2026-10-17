@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+*.tmp
+
+# 本地数据与凭据，勿提交
+data/
+config.yaml
